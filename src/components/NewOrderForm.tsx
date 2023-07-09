@@ -15,30 +15,14 @@ import {
   paymentOptions,
 } from "../data/options";
 import { FormValues, OptionType } from "../@types/types";
-import { useProducts } from "../hook/useProducts";
 import { createOrder } from "../functions/createOrder";
 import { resetForm } from "../functions/resetForm";
 
-export const calculateInstallment = (
-  price: number,
-  numberOfInstallments: number
-) => {
-  const percentage = data.find(
-    (item) => item.Parcelamento === `${numberOfInstallments}x`
-  )?.Rede;
-
-  if (percentage == null) {
-    return price / numberOfInstallments;
-  }
-
-  const installmentValue =
-    (price * (1 + percentage / 100)) / numberOfInstallments;
-
-  return installmentValue;
-};
+import { useData } from "../context/ProductsProvider";
+import { calculateInstallment } from "../functions/calculateInstallment";
 
 export function NewOrderForm() {
-  const { products, loading } = useProducts();
+  const { products, loading } = useData();
   const [formValues, setFormValues] = useState<FormValues>({
     name: "",
     multiOptions: [],
@@ -57,20 +41,12 @@ export function NewOrderForm() {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      // Criar o objeto de pedido com todas as informações necessárias
       const order = createOrder(formValues, products);
-
       console.log("pedido aqui!!", order);
-
-      // Limpar o formulário
       resetForm(setFormValues);
-
-      // Mostrar toast de sucesso
       toast.success("Pedido enviado com sucesso!");
     } catch (error) {
       console.error(error);
-
-      // Mostrar toast de erro
       toast.error("Ocorreu um erro ao enviar o pedido.");
     }
   };
@@ -80,16 +56,24 @@ export function NewOrderForm() {
     return acc + (product ? product.cashPrice : 0);
   }, 0);
 
-  const calculatedInstallmentOptions = installmentOptions.map((option) => ({
-    ...option,
-    label: `${option.label} de ${calculateInstallment(
-      productPrice,
-      parseInt(option.value)
-    ).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    })}`,
-  }));
+  const calculatedInstallmentOptions = installmentOptions.map(
+    (option: OptionType) => {
+      const installmentValue = calculateInstallment(
+        productPrice,
+        parseInt(option.value),
+        data
+      );
+      const label = `${option.label} de ${installmentValue.toLocaleString(
+        "pt-BR",
+        {
+          style: "currency",
+          currency: "BRL",
+        }
+      )}`;
+
+      return { ...option, label };
+    }
+  );
 
   return (
     <div className="container mx-auto py-8">
@@ -182,17 +166,11 @@ export function NewOrderForm() {
           type="submit"
           className="px-4 py-2 bg-custom-green text-white rounded-md hover:bg-custom-green"
         >
-          Enviar
+          Salvar
         </button>
-
-        {/* <button
-          type="button"
-          onClick={DownloadPDF}
-          className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-300"
-        >
-          Gerar PDF
-        </button> */}
       </form>
     </div>
   );
 }
+
+export default NewOrderForm;

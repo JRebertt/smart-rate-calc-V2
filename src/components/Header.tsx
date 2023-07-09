@@ -2,6 +2,7 @@ import { Plus, X } from "phosphor-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import LogoNG from "../assets/logoNG.png";
 import { NewOrderForm } from "./NewOrderForm";
+import { useData } from "../context/ProductsProvider";
 
 export function Header() {
   return (
