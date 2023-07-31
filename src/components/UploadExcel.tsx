@@ -1,7 +1,6 @@
-"use client";
 import { useState } from "react";
 import { read, utils } from "xlsx";
-import { db } from "../lib/firebase/firebase";
+import { db } from "../lib/Firebase/firebase";
 import { writeBatch, doc, collection } from "firebase/firestore";
 import {
   Box,

@@ -1,31 +1,81 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
-import { createTw } from "react-pdf-tailwind";
+import jsPDFInvoiceTemplate, { OutputType } from "jspdf-invoice-template";
+import { Product } from "../@types/types";
+import { createOrder } from "../functions/createOrder";
 
-// The 'theme' object is your Tailwind theme config
-const tw = createTw({
-  theme: {
-    fontFamily: {
-      sans: ["Comic Sans"],
-    },
-    extend: {
-      colors: {
-        custom: "#bada55",
+// interface DownloadPDFButtonProps {
+//   order: {
+//     customerName: string;
+//     products: Product[];
+//     totalPrice: number;
+//     paymentOption: string | null;
+//     cardBrand: string | null;
+//     numberOfInstallments: number;
+//     installmentValue: number;
+//   } | null;
+// }
+
+export function DownloadPDFButton() {
+  // console.log(createOrder);
+
+  const handleButtonClick = () => {
+    // const tableBody = order.products.map(
+    //   (product: Product, index: number) => [
+    //     { txt: (index + 1).toString() },
+    //     { txt: product.label },
+    //     { txt: "1" },
+    //     { txt: product.cashPrice },
+    //   ]
+    // );
+
+    // const invTotal = totalPrice.toString();
+
+    const props = {
+      outputType: OutputType.Save,
+      fileName: `Orçamento.pdf`,
+      business: {
+        name: "Norte Gases",
+        address: "Av. Maximino Porpino da Silva",
+        phone: "(91) 3721-1772",
+        email: "financeiro@nortegases.com",
+        website: "www.nortegases.com",
       },
-    },
-  },
-});
+      contact: {
+        label: "Orçamento para:",
+        // name: ,
+      },
+      invoice: {
+        label: "Orçamento #: ",
+        num: 1,
+        invDate: `Data de Emissão: ${new Date().toLocaleDateString()}`, // Usando a data atual
+        invGenDate: "Data de Vencimento: 01/02/2022",
+        headerBorder: false,
+        tableBodyBorder: false,
+        header: [
+          { title: "#", style: { width: 10 } },
+          { title: "Descrição", style: { width: 60 } },
+          { title: "Quantidade", style: { width: 15 } },
+          { title: "Preço", style: { width: 15 } },
+        ],
+        tableBodyStyle: {
+          fontSize: 10,
+        },
+        // table: tableBody,
+        invTotalLabel: "Total:",
+        // invTotal,
+        invCurrency: "BRL",
+        row1: {
+          col1: "Obrigado pela preferência!",
+          col2: "",
+          col3: "",
+          col4: "",
+          style: {
+            fontSize: 14,
+          },
+        },
+      },
+    };
 
-export default function MyPdf() {
-  return (
-    <Document>
-      <Page size="A4" style={tw("p-12 font-sans")}>
-        <View style={tw("p-20 bg-gray-100")}>
-          <Text style={tw("text-custom text-3xl")}>Section #1</Text>
-        </View>
-        <View style={tw("mt-12 px-8 rotate-2")}>
-          <Text style={tw("text-amber-600 text-2xl")}>Section #2</Text>
-        </View>
-      </Page>
-    </Document>
-  );
+    jsPDFInvoiceTemplate(props);
+  };
+  return <button onClick={handleButtonClick}>Download PDF</button>;
 }

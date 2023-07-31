@@ -1,5 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
+
+import { db } from "../lib/Firebase/firebase";
+
 import CircularProgress from "@mui/material/CircularProgress";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { ToastContainer, toast } from "react-toastify";
@@ -14,40 +18,55 @@ import {
   installmentOptions,
   paymentOptions,
 } from "../data/options";
-import { FormValues, OptionType } from "../@types/types";
+import { FormValues, OptionType, Product } from "../@types/types";
 import { createOrder } from "../functions/createOrder";
-import { resetForm } from "../functions/resetForm";
-
 import { useData } from "../context/ProductsProvider";
 import { calculateInstallment } from "../functions/calculateInstallment";
+import { DownloadPDFButton } from "./DownloadPDFButton";
+import { addDoc, collection, doc, setDoc } from "firebase/firestore";
 
 export function NewOrderForm() {
   const { products, loading } = useData();
-  const [formValues, setFormValues] = useState<FormValues>({
-    name: "",
-    multiOptions: [],
-    singleOption: "",
-    otherOption: "",
-    paymentOption: "",
+  const [order, setOrder] = useState<{
+    customerName: string;
+    products: Product[];
+    totalPrice: number;
+    paymentOption: string | null;
+    cardBrand: string | null;
+    numberOfInstallments: number;
+    installmentValue: number;
+  } | null>(null);
+
+  const {
+    register,
+    formState: { errors },
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+  } = useForm<FormValues>({
+    defaultValues: {
+      name: "",
+      multiOptions: [],
+      singleOption: "",
+      otherOption: "",
+      paymentOption: "",
+    },
   });
 
-  const handleChange = (name: string, value: any) => {
-    setFormValues((prevValues) => ({
-      ...prevValues,
-      [name]: value,
-    }));
-  };
+  const formValues = watch();
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const onSubmit = async (data: FormValues) => {
     try {
-      const order = createOrder(formValues, products);
-      console.log("pedido aqui!!", order);
-      resetForm(setFormValues);
-      toast.success("Pedido enviado com sucesso!");
+      const createdOrder = createOrder(data, products);
+      console.log("pedido aqui!!", createdOrder);
+      await addDoc(collection(db, "orders"), createdOrder);
+      setOrder(createdOrder); // Armazenar o pedido no estado 'order'
+      reset();
+      toast.success("Pedido salvo com sucesso!");
     } catch (error) {
       console.error(error);
-      toast.error("Ocorreu um erro ao enviar o pedido.");
+      toast.error("Ocorreu um erro ao salvar o pedido.");
     }
   };
 
@@ -78,13 +97,13 @@ export function NewOrderForm() {
   return (
     <div className="container mx-auto py-8">
       <ToastContainer />
-      <form onSubmit={handleSubmit} className="max-w-md mx-auto">
+      <form onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
         <TextField
           label="Nome do Cliente"
           name="name"
-          value={formValues.name}
-          onChange={(value) => handleChange("name", value)}
+          register={register("name", { required: "Este campo é obrigatório" })}
         />
+        {errors.name && <p className="text-red-500">{errors.name.message}</p>}
 
         <div className="flex items-center">
           <label className="block text-gray-700 text-sm font-bold mb-2">
@@ -99,30 +118,30 @@ export function NewOrderForm() {
 
         <SelectField
           isMulti
+          name="multiOptions"
           options={products}
           value={products.filter((option) =>
             formValues.multiOptions.includes(option.value)
           )}
-          onChange={(selectedItems: readonly { value: string }[] | null) =>
-            handleChange(
-              "multiOptions",
-              selectedItems ? selectedItems.map((item) => item.value) : []
-            )
-          }
+          register={register("multiOptions", {
+            required: "Este campo é obrigatório",
+          })}
+          error={errors.multiOptions?.message}
+          setValue={setValue}
         />
 
         <SelectField
           label="Forma de pagamento:"
+          name="paymentOption"
           options={paymentOptions}
           value={paymentOptions.find(
             (option) => option.value === formValues.paymentOption
           )}
-          onChange={(selectedItem: OptionType | null) =>
-            handleChange(
-              "paymentOption",
-              selectedItem ? selectedItem.value : null
-            )
-          }
+          setValue={setValue}
+          register={register("paymentOption", {
+            required: "Este campo é obrigatório",
+          })}
+          error={errors.paymentOption?.message}
         />
 
         {formValues.paymentOption === "parcelado" && (
@@ -134,30 +153,30 @@ export function NewOrderForm() {
           >
             <SelectField
               label="Bandeira:"
+              name="otherOption"
               options={flagOptions}
               value={flagOptions.find(
                 (option) => option.value === formValues.otherOption
               )}
-              onChange={(selectedItem: OptionType | null) =>
-                handleChange(
-                  "otherOption",
-                  selectedItem ? selectedItem.value : null
-                )
-              }
+              register={register("otherOption", {
+                required: "Este campo é obrigatório",
+              })}
+              error={errors.otherOption?.message}
+              setValue={setValue}
             />
 
             <SelectField
               label="Parcelamento:"
+              name="singleOption"
               options={calculatedInstallmentOptions}
               value={calculatedInstallmentOptions.find(
                 (option) => option.value === formValues.singleOption
               )}
-              onChange={(selectedItem: OptionType | null) =>
-                handleChange(
-                  "singleOption",
-                  selectedItem ? selectedItem.value : null
-                )
-              }
+              register={register("singleOption", {
+                required: "Este campo é obrigatório",
+              })}
+              error={errors.singleOption?.message}
+              setValue={setValue}
             />
           </motion.div>
         )}
@@ -168,9 +187,9 @@ export function NewOrderForm() {
         >
           Salvar
         </button>
+
+        <DownloadPDFButton />
       </form>
     </div>
   );
 }
-
-export default NewOrderForm;

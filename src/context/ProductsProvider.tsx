@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { db } from "../lib/firebase/firebase";
 import { collection, getDocs, query, limit } from "firebase/firestore";
 import { Product } from "../@types/types";
+import { db } from "../lib/Firebase/firebase";
 
 type DataContextType = {
   products: Product[];
